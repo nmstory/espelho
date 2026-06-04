@@ -1,19 +1,11 @@
 #pragma once
 
-#include <replicable.h>
-#include <stream.h>
+#include <cstdint>
 
-struct Position { float x = 0, y = 0; };
+enum class TypeID : uint16_t {
+	Position = 1,
+};
 
-struct PositionReplicable : public Replicable {
-	Position position;
-
-	bool process(WriteStream& s) override { return process_impl(s); }
-	bool process(ReadStream& s)  override { return process_impl(s); }
-
-private:
-	template<typename Stream>
-	bool process_impl(Stream& s) {
-		return process_pod(s, position.x) && process_pod(s, position.y);
-	}
+struct Position {
+	float x = 0, y = 0;
 };

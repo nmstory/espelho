@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
 
 # Pull in juntos (the transport layer) from the submodule
-add_subdirectory(juntos)
+add_subdirectory(submodules/juntos)
 
 # espelho is header-only for now — promote to STATIC once src/*.cpp exist
 add_library(espelho_lib INTERFACE)
@@ -25,3 +25,8 @@ target_include_directories(
 )
 
 target_link_libraries(espelho_lib INTERFACE juntos_lib)
+
+option(ESPELHO_BUILD_EXAMPLES "Build espelho example programs" ON)
+if(ESPELHO_BUILD_EXAMPLES)
+    add_subdirectory(alternative-designs/position)
+endif()

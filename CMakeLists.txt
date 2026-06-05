@@ -28,5 +28,5 @@ target_link_libraries(espelho_lib INTERFACE juntos_lib)
 
 option(ESPELHO_BUILD_EXAMPLES "Build espelho example programs" ON)
 if(ESPELHO_BUILD_EXAMPLES)
-    add_subdirectory(examples/position)
+    add_subdirectory(alternative-designs/position)
 endif()

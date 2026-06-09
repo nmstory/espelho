@@ -6,12 +6,12 @@
 #include "position.h"
 
 struct PacketVisitor {
-	virtual void visit(ID, Position&) = 0;
+	virtual void visit(ID, VisitorPosition&) = 0;
 	virtual ~PacketVisitor() = default;
 };
 
 struct PrintVisitor : PacketVisitor {
-	void visit(ID id, Position& p) override {
+	void visit(ID id, VisitorPosition& p) override {
 		std::cout << "client " << getClientID(id)
 		          << " object " << getObjectID(id)
 		          << " position: (" << p.x << ", " << p.y << ")\n";
@@ -30,7 +30,7 @@ void deserialise(const std::vector<uint8_t>& bytes, PacketVisitor& v) {
 
 	switch (tid) {
 		case TypeID::Position: {
-			Position p;
+			VisitorPosition p;
 			std::memcpy(&p, bytes.data() + header, sizeof(p));
 			v.visit(id, p);
 			break;
@@ -48,7 +48,7 @@ int main() {
 
 	TypeID tid = TypeID::Position;
 	ID id = makeID(7, 1);
-	Position pos{1.0f, 2.0f};
+	VisitorPosition pos{1.0f, 2.0f};
 
 	uint8_t buf[sizeof(tid) + sizeof(id) + sizeof(pos)];
 	std::memcpy(buf, &tid, sizeof(tid));

@@ -12,7 +12,7 @@ public:
 
     void RegisterAllTypes();
     void Update();
-    void SendObjects(std::vector<Replicable*>& objects);
+    void SendObjects(std::vector<std::unique_ptr<Replicable>>& objects);
 
 private:
     void Send(const uint8_t* data, size_t len);

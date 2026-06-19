@@ -2,9 +2,9 @@
 
 #include <position.h>
 
-Espelho::Espelho()
+Espelho::Espelho(const int& port)
 {
-    client.init("127.0.0.1", 20001);
+    client.init("127.0.0.1", port);
 
     RegisterAllTypes();
 }
@@ -20,9 +20,9 @@ void Espelho::Update()
     }
 }
 
-void Espelho::SendObjects(std::vector<Replicable*>& objects)
+void Espelho::SendObjects(std::vector<std::unique_ptr<Replicable>>& objects)
 {
-    for (Replicable* obj : objects)
+    for (auto& obj : objects)
     {
         if (!writer.write(*obj)) // false: not enough space in current packet to write
         {

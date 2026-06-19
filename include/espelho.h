@@ -1,6 +1,7 @@
 #pragma once
 
 #include <packet_writer.h>
+#include <packet_reader.h>
 #include <type_registry.h>
 #include <submodules/juntos/include/client.h>
 
@@ -18,5 +19,6 @@ private:
 
     Client client{};
     PacketWriter writer{};
+    PacketReader reader{};
     TypeRegistry typeRegistry{};
 };

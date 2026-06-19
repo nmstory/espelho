@@ -5,11 +5,9 @@ void TypeRegistry::add(TypeID t, PointerToFunc f)
     factories[t] = f;
 }
 
-TypeRegistry::PointerToFunc TypeRegistry::create(TypeID typeID) const
+std::unique_ptr<Replicable> TypeRegistry::create(TypeID t) const 
 {
-    auto funcItr = factories.find(typeID);
-    if(funcItr != factories.end()){
-        return funcItr->second;
-    }
-    return nullptr;
+    auto it = factories.find(t);
+    if (it == factories.end()) return nullptr;
+    return it->second();
 }

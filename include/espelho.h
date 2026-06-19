@@ -8,7 +8,7 @@
 class Espelho 
 {
 public:
-    Espelho();
+    Espelho(const int& port);
 
     void RegisterAllTypes();
     void Update();

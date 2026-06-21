@@ -16,7 +16,7 @@ void Espelho::Update()
 
     if(recv)
     {
-        std::vector<std::unique_ptr<Replicable>> deserialisedObjects = reader.read(recv->data(), recv->size(), typeRegistry);
+        reader.read(recv->data(), recv->size(), typeRegistry, objects);
     }
 }
 

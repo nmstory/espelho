@@ -21,4 +21,6 @@ private:
     PacketWriter writer{};
     PacketReader reader{};
     TypeRegistry typeRegistry{};
+
+    std::vector<std::unique_ptr<Replicable>> objects {};
 };

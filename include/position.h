@@ -5,6 +5,8 @@
 
 struct Position : public Replicable {
 
+    Position(const int& x, const int& y) : m_X(x), m_Y(y) {}
+
     static std::unique_ptr<Replicable> make() {
         return std::make_unique<Position>();
     }
@@ -14,5 +16,5 @@ struct Position : public Replicable {
     TypeID typeID() const override { return TypeID::Position; }
 
 private:
-    float x = 0, y = 0;
+    int m_X = 0, m_Y = 0;
 };

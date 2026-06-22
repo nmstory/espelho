@@ -6,8 +6,11 @@
 #include <replicable.h>
 
 class TypeRegistry {
-    std::unordered_map<TypeID, std::unique_ptr<Replicable>(*)()> factories;
 public:
-    void add(TypeID t, std::unique_ptr<Replicable>(*f)()) { factories[t] = f; }
-    std::unique_ptr<Replicable> create(TypeID t) const;   // nullptr if unknown
+    using PointerToFunc = std::unique_ptr<Replicable>(*)();
+    void add(TypeID t, PointerToFunc f);
+    std::unique_ptr<Replicable> create(TypeID t) const;
+
+private:
+    std::unordered_map<TypeID, PointerToFunc> factories;
 };

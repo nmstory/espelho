@@ -1,11 +1,22 @@
-#include <type_registry.h>
+#include <espelho.h>
+#include <iostream>
+#include <memory>
+#include <position.h>
 
-void registerAllTypes(TypeRegistry& registry) {
+int main(int argc, char *argv[]) {
 
-}
+    if (argc < 2)
+    {
+        std::cerr << "Error: Incorrect number of args provided. You need to provide a port number" << std::endl;
+        return 1;
+    }
 
-int main() {
-    TypeRegistry registry;
-    registerAllTypes(registry);
-
+    Espelho espelho(*argv[1]);
+    std::vector<std::unique_ptr<Replicable>> objects = {std::make_unique<Replicable>(Position(1,1))};
+    
+    while (true)
+    {
+        espelho.SendObjects(objects);
+        espelho.Update();
+    }
 }

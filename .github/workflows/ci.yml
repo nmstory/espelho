@@ -34,9 +34,8 @@ jobs:
     - name: Build
       run: cmake --build build --config Release --parallel
 
-    # To uncomment once tests are added via add_test() / enable_testing() in CMake:
-    # - name: Test
-    #   run: ctest --test-dir build --build-config Release --output-on-failure
+    - name: Test
+      run: ctest --test-dir build --build-config Release --output-on-failure
 
   sanitize:
     name: Sanitizers (Linux)
@@ -57,9 +56,8 @@ jobs:
     - name: Build
       run: cmake --build build --parallel
 
-    # Uncomment once tests are wired up:
-    # - name: Test
-    #   env:
-    #     ASAN_OPTIONS: halt_on_error=1:abort_on_error=1
-    #     UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
-    #   run: ctest --test-dir build --output-on-failure
+    - name: Test
+      env:
+        ASAN_OPTIONS: halt_on_error=1:abort_on_error=1
+        UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+      run: ctest --test-dir build --output-on-failure

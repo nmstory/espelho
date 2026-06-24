@@ -37,3 +37,29 @@ jobs:
     # To uncomment once tests are added via add_test() / enable_testing() in CMake:
     # - name: Test
     #   run: ctest --test-dir build --build-config Release --output-on-failure
+
+  sanitize:
+    name: Sanitizers (Linux)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Configure
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
+          -DESPELHO_BUILD_EXAMPLES=OFF
+
+    - name: Build
+      run: cmake --build build --parallel
+
+    # Uncomment once tests are wired up:
+    # - name: Test
+    #   env:
+    #     ASAN_OPTIONS: halt_on_error=1:abort_on_error=1
+    #     UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    #   run: ctest --test-dir build --output-on-failure

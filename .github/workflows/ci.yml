@@ -34,6 +34,67 @@ jobs:
     - name: Build
       run: cmake --build build --config Release --parallel
 
-    # To uncomment once tests are added via add_test() / enable_testing() in CMake:
-    # - name: Test
-    #   run: ctest --test-dir build --build-config Release --output-on-failure
+    - name: Test
+      run: ctest --test-dir build --build-config Release --output-on-failure
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install clang tools
+      run: |
+        sudo apt-get install -y clang-tidy wget gnupg lsb-release
+        sudo wget -qO /usr/share/keyrings/llvm-snapshot.gpg.key \
+          https://apt.llvm.org/llvm-snapshot.gpg.key
+        echo "deb [signed-by=/usr/share/keyrings/llvm-snapshot.gpg.key] \
+          http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main" \
+          | sudo tee /etc/apt/sources.list.d/llvm.list
+        sudo apt-get update
+        sudo apt-get install -y clang-format-19
+
+    - name: Check formatting
+      run: |
+        find src include test \( -name '*.cpp' -o -name '*.h' \) \
+          | xargs clang-format-19 --dry-run --Werror
+
+    - name: Configure (for compile_commands.json)
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          -DESPELHO_BUILD_EXAMPLES=OFF
+
+    - name: clang-tidy
+      run: |
+        clang-tidy -p build \
+          --header-filter='(src|include|test)/.*' \
+          $(find test -name '*.cpp')
+
+  sanitize:
+    name: Sanitizers (Linux)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Configure
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
+          -DESPELHO_BUILD_EXAMPLES=OFF
+
+    - name: Build
+      run: cmake --build build --parallel
+
+    - name: Test
+      env:
+        ASAN_OPTIONS: halt_on_error=1:abort_on_error=1
+        UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+      run: ctest --test-dir build --output-on-failure

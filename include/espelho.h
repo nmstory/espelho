@@ -2,7 +2,7 @@
 
 #include <packet_reader.h>
 #include <packet_writer.h>
-#include <submodules/juntos/include/client.h>
+#include <client.h>
 #include <type_registry.h>
 
 class Espelho

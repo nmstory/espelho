@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  Espelho espelho(*argv[1]);
+  Espelho espelho(std::stoi(argv[1]));
   std::vector<std::unique_ptr<Replicable>> objects = {
       std::make_unique<Position>(1, 1)};
 

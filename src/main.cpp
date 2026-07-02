@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 
   Espelho espelho(*argv[1]);
   std::vector<std::unique_ptr<Replicable>> objects = {
-      std::make_unique<Replicable>(Position(1, 1))};
+      std::make_unique<Position>(1, 1)};
 
   while (true) {
     espelho.SendObjects(objects);

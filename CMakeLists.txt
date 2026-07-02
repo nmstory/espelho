@@ -15,16 +15,23 @@ set(CMAKE_CXX_EXTENSIONS Off)
 # Pull in juntos (the transport layer) from the submodule
 add_subdirectory(submodules/juntos)
 
-# espelho is header-only for now — promote to STATIC once src/*.cpp exist
-add_library(espelho_lib INTERFACE)
+add_library(espelho_lib STATIC
+    src/espelho.cpp
+    src/packet_reader.cpp
+    src/packet_writer.cpp
+    src/type_registry.cpp
+)
 
 target_include_directories(
     espelho_lib
-    INTERFACE
+    PUBLIC
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
 )
 
-target_link_libraries(espelho_lib INTERFACE juntos_lib)
+target_link_libraries(espelho_lib PUBLIC juntos_lib)
+
+add_executable(espelho src/main.cpp)
+target_link_libraries(espelho PRIVATE espelho_lib)
 
 option(ESPELHO_BUILD_EXAMPLES "Build espelho example programs" ON)
 if(ESPELHO_BUILD_EXAMPLES)

@@ -10,9 +10,8 @@
 struct PacketReader
 {
 public:
-  std::vector<std::unique_ptr<Replicable>> read(
-      const uint8_t* data,
-      size_t len,
-      const TypeRegistry& registry,
-      std::vector<std::unique_ptr<Replicable>>& objects);
+  void read(const uint8_t* data,
+            size_t len,
+            const TypeRegistry& registry,
+            std::vector<std::unique_ptr<Replicable>>& objects);
 };

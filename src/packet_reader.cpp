@@ -1,10 +1,9 @@
 #include <packet_reader.h>
 
-std::vector<std::unique_ptr<Replicable>> PacketReader::read(
-    const uint8_t* data,
-    size_t len,
-    const TypeRegistry& registry,
-    std::vector<std::unique_ptr<Replicable>>& objects)
+void PacketReader::read(const uint8_t* data,
+                        size_t len,
+                        const TypeRegistry& registry,
+                        std::vector<std::unique_ptr<Replicable>>& objects)
 {
   ReadStream stream {data, len};
 
@@ -42,6 +41,4 @@ std::vector<std::unique_ptr<Replicable>> PacketReader::read(
       objects.push_back(std::move(obj));
     }
   }
-
-  return objects;
 }

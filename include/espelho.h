@@ -1,8 +1,8 @@
 #pragma once
 
+#include <client.h>
 #include <packet_reader.h>
 #include <packet_writer.h>
-#include <client.h>
 #include <type_registry.h>
 
 class Espelho

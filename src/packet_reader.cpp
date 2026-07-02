@@ -1,6 +1,6 @@
 #include <packet_reader.h>
 
-std::vector<std::unique_ptr<Replicable>> PacketReader::read(
+void PacketReader::read(
     const uint8_t* data,
     size_t len,
     const TypeRegistry& registry,
@@ -42,6 +42,4 @@ std::vector<std::unique_ptr<Replicable>> PacketReader::read(
       objects.push_back(std::move(obj));
     }
   }
-
-  return objects;
 }

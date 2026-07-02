@@ -1,9 +1,14 @@
+#include <span>
+#include <stdexcept>
+
 #include <espelho.h>
 #include <position.h>
 
 Espelho::Espelho(const int& port)
 {
-  client.init("127.0.0.1", port);
+  if (!client.init("127.0.0.1", port)) {
+    throw std::runtime_error("Espelho: failed to initialize client");
+  }
 
   RegisterAllTypes();
 }
@@ -37,7 +42,7 @@ void Espelho::SendObjects(std::vector<std::unique_ptr<Replicable>>& objects)
 
 void Espelho::Send(const uint8_t* data, size_t len)
 {
-  client.send(data, len);
+  client.send(std::span<const uint8_t>(data, len));
 }
 
 void Espelho::RegisterAllTypes()

@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cstring>
 #include <iostream>
+#include <span>
 #include <client.h>
 #include <id.h>
 #include "position.h"
@@ -40,11 +41,20 @@ void deserialise(const std::vector<uint8_t>& bytes, PacketVisitor& v) {
 
 int main() {
 	Client receiver;
-	receiver.init("127.0.0.1", 5002, std::chrono::milliseconds(500));
+	if (!receiver.init("127.0.0.1", 5002, std::chrono::milliseconds(500))) {
+		std::cerr << "failed to init receiver\n";
+		return 1;
+	}
 
 	Client sender;
-	sender.init("127.0.0.1", 5001);
-	sender.addPeer("127.0.0.1", 5002);
+	if (!sender.init("127.0.0.1", 5001)) {
+		std::cerr << "failed to init sender\n";
+		return 1;
+	}
+	if (!sender.addPeer("127.0.0.1", 5002)) {
+		std::cerr << "failed to add peer\n";
+		return 1;
+	}
 
 	TypeID tid = TypeID::Position;
 	ID id = makeID(7, 1);
@@ -54,7 +64,10 @@ int main() {
 	std::memcpy(buf, &tid, sizeof(tid));
 	std::memcpy(buf + sizeof(tid), &id, sizeof(id));
 	std::memcpy(buf + sizeof(tid) + sizeof(id), &pos, sizeof(pos));
-	sender.send(buf, sizeof(buf));
+	if (!sender.send(std::span<const uint8_t>(buf, sizeof(buf)))) {
+		std::cerr << "failed to send\n";
+		return 1;
+	}
 
 	PrintVisitor visitor;
 	for (int i = 0; i < 5; ++i) {

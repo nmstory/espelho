@@ -11,6 +11,7 @@
 enum class TypeID : uint16_t
 {
   Position = 1,
+  Health = 2,
 };
 
 class Replicable

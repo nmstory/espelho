@@ -2,6 +2,7 @@
 #include <memory>
 
 #include <espelho.h>
+#include <health.h>
 #include <position.h>
 
 int main(int argc, char* argv[])
@@ -16,6 +17,7 @@ int main(int argc, char* argv[])
   Espelho espelho(std::stoi(argv[1]));
   std::vector<std::unique_ptr<Replicable>> objects;
   objects.push_back(std::make_unique<Position>(1, 1));
+  objects.push_back(std::make_unique<Health>(100));
 
   while (true) {
     espelho.SendObjects(objects);

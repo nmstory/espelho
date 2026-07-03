@@ -2,6 +2,7 @@
 #include <stdexcept>
 
 #include <espelho.h>
+#include <health.h>
 #include <position.h>
 
 Espelho::Espelho(const int& port)
@@ -48,4 +49,5 @@ void Espelho::Send(const uint8_t* data, size_t len)
 void Espelho::RegisterAllTypes()
 {
   typeRegistry.add(TypeID::Position, &Position::make);
+  typeRegistry.add(TypeID::Health, &Health::make);
 }

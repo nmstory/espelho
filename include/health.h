@@ -23,6 +23,8 @@ struct Health : public Replicable
 
   TypeID typeID() const override { return TypeID::Health; }
 
+  uint8_t value() const { return m_Value; }
+
 private:
   uint8_t m_Value = 100;
 };

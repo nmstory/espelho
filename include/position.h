@@ -29,6 +29,16 @@ struct Position : public Replicable
 
   TypeID typeID() const override { return TypeID::Position; }
 
+  int x() const { return m_X; }
+
+  int y() const { return m_Y; }
+
+  void set(int x, int y)
+  {
+    m_X = x;
+    m_Y = y;
+  }
+
 private:
   int m_X = 0, m_Y = 0;
 };

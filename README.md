@@ -23,11 +23,38 @@ them on the receiving side.
   asks the registry to construct the object, so adding a new type never touches central
   dispatch code.
 
-- **Packet assembly** (planned) — packs as many object records (`TypeID`, object ID,
-  payload) as fit within a conservative MTU budget, rolling back any record that does
-  not fit so it can be sent in the next packet.
+- **Packet assembly** (`packet_writer.h`, `packet_reader.h`) — packs as many object
+  records (`TypeID`, object ID, payload) as fit within a conservative MTU budget,
+  rolling back any record that does not fit so it can be sent in the next packet.
 
-- **Replication semantics** (planned) — object lifetime (create/destroy), sequence
-  numbers to discard stale state, and prioritisation of which objects to send when not
-  everything fits in one packet.
+- **Replication semantics** (in progress) — each packet carries a sequence number
+  (`sequence.h`), and the receiver drops any packet that is not newer than the last
+  one accepted, so stale or duplicated UDP packets can never roll object state
+  backwards. The receiver currently tracks a single sequence across all senders (the
+  transport does not yet expose the sender's identity), so it is correct for one peer.
+  Still planned: per-peer sequences, object lifetime (create/destroy), and
+  prioritisation of which objects to send when not everything fits in one packet.
+
+## Demo
+
+Build, then run two processes that mirror each other's objects over localhost:
+
+```sh
+cmake -B build
+cmake --build build --parallel
+
+./build/espelho 7000 7001    # terminal 1
+./build/espelho 7001 7000    # terminal 2
+```
+
+Each process moves its own `Position` every tick and prints the mirrored objects it
+receives from its peer. If you restart one process, restart both — a fresh process
+starts its sequence numbers from zero, so the surviving peer would treat its packets
+as stale.
+
+## Tests
+
+```sh
+ctest --test-dir build --output-on-failure
+```
 

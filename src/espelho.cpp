@@ -1,3 +1,4 @@
+#include <iostream>
 #include <span>
 #include <stdexcept>
 
@@ -5,21 +6,25 @@
 #include <health.h>
 #include <position.h>
 
-Espelho::Espelho(const int& port)
+Espelho::Espelho(const int& port,
+                 std::optional<std::chrono::milliseconds> recvTimeout)
 {
-  if (!client.init("127.0.0.1", port)) {
+  if (!client.init("127.0.0.1", port, recvTimeout)) {
     throw std::runtime_error("Espelho: failed to initialize client");
   }
 
   RegisterAllTypes();
 }
 
+bool Espelho::AddPeer(const std::string& hostname, int port)
+{
+  return client.addPeer(hostname, port);
+}
+
 void Espelho::Update()
 {
-  // check for anything to be received
-  std::optional<std::vector<uint8_t>> recv = client.update();
-
-  if (recv) {
+  // drain everything received since the last update
+  while (std::optional<std::vector<uint8_t>> recv = client.update()) {
     reader.read(recv->data(), recv->size(), typeRegistry, objects);
   }
 }
@@ -35,7 +40,7 @@ void Espelho::SendObjects(std::vector<std::unique_ptr<Replicable>>& objects)
       writer.write(*obj);
     }
   }
-  if (writer.size() > 0) {
+  if (writer.hasRecords()) {
     Send(writer.data(), writer.size());
     writer.reset();
   }
@@ -43,7 +48,9 @@ void Espelho::SendObjects(std::vector<std::unique_ptr<Replicable>>& objects)
 
 void Espelho::Send(const uint8_t* data, size_t len)
 {
-  client.send(std::span<const uint8_t>(data, len));
+  if (!client.send(std::span<const uint8_t>(data, len))) {
+    std::cerr << "Espelho: send failed" << std::endl;
+  }
 }
 
 void Espelho::RegisterAllTypes()

@@ -1,4 +1,5 @@
 #include <packet_reader.h>
+#include <sequence.h>
 
 void PacketReader::read(const uint8_t* data,
                         size_t len,
@@ -6,6 +7,15 @@ void PacketReader::read(const uint8_t* data,
                         std::vector<std::unique_ptr<Replicable>>& objects)
 {
   ReadStream stream {data, len};
+
+  uint16_t seq;
+  if (!process_pod(stream, seq)) {
+    return;
+  }
+  if (lastSeq && !sequence_greater_than(seq, *lastSeq)) {
+    return;  // stale or duplicate packet
+  }
+  lastSeq = seq;
 
   while (stream.pos < stream.cap) {
     TypeID tid;

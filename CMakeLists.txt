@@ -43,3 +43,8 @@ if(ESPELHO_BUILD_TESTS)
     enable_testing()
     add_subdirectory(test)
 endif()
+
+option(ESPELHO_BUILD_VISUALISER "Build the optional SDL2 visualiser (fetches SDL2 via FetchContent)" OFF)
+if(ESPELHO_BUILD_VISUALISER)
+    add_subdirectory(visualiser)
+endif()

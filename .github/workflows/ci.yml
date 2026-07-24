@@ -58,7 +58,7 @@ jobs:
 
     - name: Check formatting
       run: |
-        find src include test \( -name '*.cpp' -o -name '*.h' \) \
+        find src include test visualiser \( -name '*.cpp' -o -name '*.h' \) \
           | xargs clang-format-19 --dry-run --Werror
 
     - name: Configure (for compile_commands.json)

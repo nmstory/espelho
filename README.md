@@ -52,6 +52,36 @@ receives from its peer. If you restart one process, restart both — a fresh pro
 starts its sequence numbers from zero, so the surviving peer would treat its packets
 as stale.
 
+## Visualiser (optional)
+
+An optional SDL2-based window that shows the same replication demo as above, but
+draws each peer's `Position` as a moving square instead of printing coordinates to
+stdout. It is off by default; SDL2 is fetched automatically via CMake's
+FetchContent only when you explicitly enable it, so nothing changes for the
+default build.
+
+Building it from source pulls in SDL2's own platform build prerequisites — on
+Linux, install something like:
+
+```sh
+sudo apt-get install libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+    libxinerama-dev libxss-dev libxkbcommon-dev libwayland-dev libgl1-mesa-dev
+```
+
+Then:
+
+```sh
+cmake -B build -DESPELHO_BUILD_VISUALISER=ON
+cmake --build build --parallel
+
+./build/visualiser/espelho_visualiser 7000 7001    # terminal 1
+./build/visualiser/espelho_visualiser 7001 7000    # terminal 2
+```
+
+Each window shows your own position (green) moving automatically and your
+peer's mirrored position (orange). Close either window, press Escape, or
+Ctrl+C to exit.
+
 ## Tests
 
 ```sh

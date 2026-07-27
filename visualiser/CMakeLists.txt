@@ -11,6 +11,7 @@ set(SDL_STATIC ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(SDL2)
 
 add_executable(espelho_visualiser main.cpp)
+target_include_directories(espelho_visualiser PRIVATE .)
 target_link_libraries(espelho_visualiser PRIVATE espelho_lib SDL2::SDL2-static)
 if(TARGET SDL2::SDL2main)
     target_link_libraries(espelho_visualiser PRIVATE SDL2::SDL2main)

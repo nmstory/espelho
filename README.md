@@ -9,27 +9,6 @@ and how their fields are serialised, and Espelho handles turning those objects i
 that fit under the maximum transmission size, sending them through Juntos, and reconstructing 
 them on the receiving side.
 
-## Milestone 1: Replication Core
-
-This tag marks the first working end-to-end slice: two processes can each own a
-`Position` and a `Health`, mirror them to each other over UDP, reject stale or
-duplicated packets, and (optionally) watch it happen live in an SDL2 window.
-Specifically, this milestone includes:
-
-- Symmetric serialisation streams (`WriteStream`/`ReadStream`) with round-trip tests.
-- A `Replicable` interface plus two example types (`Position`, `Health`).
-- A self-registering type registry that reconstructs objects from a wire `TypeID`.
-- MTU-aware packet assembly that packs records into as few packets as fit.
-- Sequence-number tracking that drops stale or duplicated UDP packets.
-- An `Espelho` facade tying the above to Juntos, used by both a console demo
-  (`src/main.cpp`) and an optional SDL2 visualiser (`visualiser/main.cpp`).
-- Unit tests (GoogleTest) covering stream round-trips, replicable round-trips, and
-  packet assembly/parsing.
-
-Still open — see "Replication semantics" below: per-peer sequence tracking, object
-lifetime (create/destroy), and prioritisation of which objects to send when not
-everything fits in one packet.
-
 ## Architecture & design patterns
 
 - **Streams** (`stream.h`) — symmetric `WriteStream` and `ReadStream` over a byte
@@ -59,20 +38,16 @@ everything fits in one packet.
 - **Sequence numbers** (`sequence.h`) — a wraparound-aware comparison over the
   circular `uint16_t` sequence space, so the receiver can always tell "newer" from
   "older" even after the counter wraps past 65535, and drop anything that is not
-  newer than the last packet accepted.
+  newer than the last packet accepted. It currently tracks a single sequence across
+  all senders — the transport does not yet expose the sender's identity, so this is
+  correct for one peer. Still planned: per-peer sequences, object lifetime
+  (create/destroy), and prioritisation of which objects to send when not everything
+  fits in one packet.
 
 - **`Espelho` — Facade** (`espelho.h`/`.cpp`) — wraps the Juntos `Client`,
   `PacketWriter`, `PacketReader`, and `TypeRegistry` behind four calls (`AddPeer`,
   `SendObjects`, `Update`, `Objects`), so callers — the console demo and the
   visualiser — never touch packet framing or transport details directly.
-
-- **Replication semantics** (in progress) — each packet carries a sequence number, and
-  the receiver drops any packet that is not newer than the last one accepted, so stale
-  or duplicated UDP packets can never roll object state backwards. The receiver
-  currently tracks a single sequence across all senders (the transport does not yet
-  expose the sender's identity), so it is correct for one peer. Still planned: per-peer
-  sequences, object lifetime (create/destroy), and prioritisation of which objects to
-  send when not everything fits in one packet.
 
 ### Visualiser rendering — not MVC (yet)
 
@@ -89,11 +64,11 @@ single file of free functions plus one loop:
   tick timer, drives `Espelho::SendObjects`/`Update`, and calls `renderFrame`.
 
 The separation of concerns is real, but informal: there's no `Model`, `View`, or
-`Controller` type, and everything lives in one translation unit. A future milestone
-that wants a genuine MVC split — e.g. to support more object types or multiple
-views — would introduce an actual `Model` owning local + mirrored objects, a `View`
-that only issues `SDL_Renderer` calls, and a thin `Controller` wiring input and the
-`Espelho` tick to both.
+`Controller` type, and everything lives in one translation unit. A genuine MVC
+split — e.g. to support more object types or multiple views — would introduce an
+actual `Model` owning local + mirrored objects, a `View` that only issues
+`SDL_Renderer` calls, and a thin `Controller` wiring input and the `Espelho` tick
+to both.
 
 ## Demo
 

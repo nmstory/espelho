@@ -2,6 +2,7 @@
 #include <iostream>
 #include <memory>
 #include <thread>
+#include <vector>
 
 #include <espelho.h>
 #include <health.h>
@@ -12,29 +13,26 @@ using namespace std::chrono_literals;
 namespace
 {
 
+// Enough entities to force packet-splitting under the 1200-byte MTU budget,
+// as a stand-in for a real game world ahead of phase two's optimisation work.
+constexpr int objectCount = 1000;
+
 void printMirror(const std::vector<std::unique_ptr<Replicable>>& objects)
 {
-  std::cout << " | mirror:";
-  if (objects.empty()) {
-    std::cout << " (nothing yet)";
-  }
+  size_t positions = 0;
+  size_t healths = 0;
   for (const auto& obj : objects) {
     switch (obj->typeID()) {
-      case TypeID::Position: {
-        const auto& position = static_cast<const Position&>(*obj);
-        std::cout << " Position#" << obj->id << "(" << position.x() << ", "
-                  << position.y() << ")";
+      case TypeID::Position:
+        ++positions;
         break;
-      }
-      case TypeID::Health: {
-        const auto& health = static_cast<const Health&>(*obj);
-        std::cout << " Health#" << obj->id << "("
-                  << static_cast<int>(health.value()) << ")";
+      case TypeID::Health:
+        ++healths;
         break;
-      }
     }
   }
-  std::cout << std::endl;
+  std::cout << " | mirror: " << positions << " Position, " << healths
+            << " Health";
 }
 
 }  // namespace
@@ -55,25 +53,34 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  auto ownedPosition = std::make_unique<Position>(0, 0);
-  Position* position = ownedPosition.get();
-
   std::vector<std::unique_ptr<Replicable>> objects;
-  objects.push_back(std::move(ownedPosition));
-  objects.push_back(std::make_unique<Health>(100));
-  for (auto& obj : objects) {
-    obj->id = ownPort;  // tag records with their origin
+  objects.reserve(objectCount * 2);
+  std::vector<Position*> positions;
+  positions.reserve(objectCount);
+  for (int i = 0; i < objectCount; ++i) {
+    const int id = ownPort * 10000 + i;  // unique per entity, tagged by origin
+
+    auto position = std::make_unique<Position>(i, 0);
+    position->id = id;
+    positions.push_back(position.get());
+    objects.push_back(std::move(position));
+
+    auto health = std::make_unique<Health>();
+    health->id = id;
+    objects.push_back(std::move(health));
   }
 
   for (int tick = 0;; ++tick) {
-    position->set(tick, 0);
+    for (int i = 0; i < objectCount; ++i) {
+      positions[i]->set(tick + i, i);
+    }
 
     espelho.SendObjects(objects);
     espelho.Update();
 
-    std::cout << "tick " << tick << " | sent Position#" << ownPort << "("
-              << tick << ", 0)";
+    std::cout << "tick " << tick << " | sent " << objectCount << " objects";
     printMirror(espelho.Objects());
+    std::cout << std::endl;
 
     std::this_thread::sleep_for(100ms);
   }

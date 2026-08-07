@@ -82,17 +82,19 @@ cmake --build build --parallel
 ./build/espelho 7001 7000    # terminal 2
 ```
 
-Each process moves its own `Position` every tick and prints the mirrored objects it
-receives from its peer. If you restart one process, restart both — a fresh process
-starts its sequence numbers from zero, so the surviving peer would treat its packets
-as stale.
+Each process owns a world of 1,000 `Position`/`Health` pairs, moves them every tick,
+and prints a count of the mirrored objects it receives from its peer — enough
+objects that a tick's worth of updates no longer fits in one UDP packet, so
+`SendObjects` splits it across several. If you restart one process, restart both —
+a fresh process starts its sequence numbers from zero, so the surviving peer would
+treat its packets as stale.
 
 ## Visualiser (optional)
 
 An optional SDL2-based window that shows the same replication demo as above, but
-draws each peer's `Position` as a moving square instead of printing coordinates to
-stdout. It is off by default; SDL2 is fetched automatically via CMake's
-FetchContent only when you explicitly enable it, so nothing changes for the
+draws each peer's 1,000 `Position` objects as a swarm of moving dots instead of
+printing counts to stdout. It is off by default; SDL2 is fetched automatically via
+CMake's FetchContent only when you explicitly enable it, so nothing changes for the
 default build.
 
 Building it from source pulls in SDL2's own platform build prerequisites — on
@@ -113,9 +115,9 @@ cmake --build build --parallel
 ./build/visualiser/espelho_visualiser 7001 7000    # terminal 2
 ```
 
-Each window shows your own position (green) moving automatically and your
-peer's mirrored position (orange). Close either window, press Escape, or
-Ctrl+C to exit.
+Each window shows your own 1,000 objects (green) moving automatically in a
+phyllotaxis spiral and your peer's mirrored objects (orange). Close either
+window, press Escape, or Ctrl+C to exit.
 
 ## Tests
 

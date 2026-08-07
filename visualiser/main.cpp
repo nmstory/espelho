@@ -22,55 +22,21 @@ constexpr int windowWidth = 800;
 constexpr int windowHeight = 600;
 constexpr int centreX = windowWidth / 2;
 constexpr int centreY = windowHeight / 2;
-constexpr int boxSize = 20;
+constexpr int dotSize = 3;
 
-// A replicated object naturally exposes at most one Position and one Health;
-// pull both out in a single pass so drawing code doesn't repeat the switch.
-struct ObjectView
-{
-  const Position* position = nullptr;
-  const Health* health = nullptr;
-};
+// Enough entities to force packet-splitting under the 1200-byte MTU budget,
+// as a stand-in for a real game world ahead of phase two's optimisation work.
+constexpr int objectCount = 1000;
 
-ObjectView findObjectView(
-    const std::vector<std::unique_ptr<Replicable>>& objects)
-{
-  ObjectView view;
-  for (const auto& obj : objects) {
-    switch (obj->typeID()) {
-      case TypeID::Position:
-        view.position = static_cast<const Position*>(obj.get());
-        break;
-      case TypeID::Health:
-        view.health = static_cast<const Health*>(obj.get());
-        break;
-    }
-  }
-  return view;
-}
+// Golden angle (radians): placing point i at angle i * goldenAngle with
+// radius proportional to sqrt(i) tiles a disc evenly (a phyllotaxis spiral),
+// so the swarm reads as a filled cloud instead of overlapping rings.
+constexpr double goldenAngle = 2.399963229728653;
 
 SDL_Point pixelCentre(const Position& position)
 {
   return SDL_Point {centreX + position.x(), centreY + position.y()};
 }
-
-// A short fading history of where an object has been, so motion reads as a
-// path rather than a square jumping between positions.
-struct Trail
-{
-  static constexpr size_t maxLength = 20;
-  std::vector<SDL_Point> points;
-
-  void push(SDL_Point p)
-  {
-    if (points.empty() || points.back().x != p.x || points.back().y != p.y) {
-      points.push_back(p);
-      if (points.size() > maxLength) {
-        points.erase(points.begin());
-      }
-    }
-  }
-};
 
 void drawGrid(SDL_Renderer* renderer)
 {
@@ -84,51 +50,20 @@ void drawGrid(SDL_Renderer* renderer)
   }
 }
 
-void drawTrail(SDL_Renderer* renderer, const Trail& trail, SDL_Color colour)
+// Batched into a single SDL_RenderFillRects call rather than per-point
+// SetColor+FillRect, since this runs on up to objectCount points a frame.
+void drawSwarm(SDL_Renderer* renderer,
+               const std::vector<SDL_Point>& points,
+               SDL_Color colour)
 {
-  const size_t count = trail.points.size();
-  constexpr int trailSize = boxSize / 2;
-  for (size_t i = 0; i < count; ++i) {
-    const auto alpha = static_cast<Uint8>(255 * (i + 1) / (count + 1));
-    SDL_SetRenderDrawColor(renderer, colour.r, colour.g, colour.b, alpha);
-    SDL_Rect rect {trail.points[i].x - trailSize / 2,
-                   trail.points[i].y - trailSize / 2,
-                   trailSize,
-                   trailSize};
-    SDL_RenderFillRect(renderer, &rect);
+  std::vector<SDL_Rect> rects;
+  rects.reserve(points.size());
+  for (const auto& p : points) {
+    rects.push_back(
+        SDL_Rect {p.x - dotSize / 2, p.y - dotSize / 2, dotSize, dotSize});
   }
-}
-
-void drawSquare(SDL_Renderer* renderer, SDL_Point centre, SDL_Color colour)
-{
   SDL_SetRenderDrawColor(renderer, colour.r, colour.g, colour.b, 255);
-  SDL_Rect rect {
-      centre.x - boxSize / 2, centre.y - boxSize / 2, boxSize, boxSize};
-  SDL_RenderFillRect(renderer, &rect);
-}
-
-// Health is a uint8_t (0-255), but the demo only ever constructs it with the
-// default value of 100, so 100 is treated as a "full" bar rather than 255.
-void drawHealthBar(SDL_Renderer* renderer,
-                   SDL_Point above,
-                   uint8_t value,
-                   SDL_Color colour)
-{
-  constexpr int barWidth = 40;
-  constexpr int barHeight = 6;
-  constexpr int referenceMax = 100;
-  const int clamped = value < referenceMax ? value : referenceMax;
-  const int filled = clamped * barWidth / referenceMax;
-  const int x = above.x - barWidth / 2;
-  const int y = above.y - boxSize;
-
-  SDL_SetRenderDrawColor(renderer, 80, 80, 80, 255);
-  SDL_Rect background {x, y, barWidth, barHeight};
-  SDL_RenderFillRect(renderer, &background);
-
-  SDL_SetRenderDrawColor(renderer, colour.r, colour.g, colour.b, 255);
-  SDL_Rect fill {x, y, filled, barHeight};
-  SDL_RenderFillRect(renderer, &fill);
+  SDL_RenderFillRects(renderer, rects.data(), static_cast<int>(rects.size()));
 }
 
 void drawText(SDL_Renderer* renderer,
@@ -154,25 +89,30 @@ void drawText(SDL_Renderer* renderer,
   }
 }
 
-std::string formatHud(std::string_view role, int port, const ObjectView& view)
+std::string formatHud(std::string_view role, int port, size_t count)
 {
-  std::string text = std::string(role) + " #" + std::to_string(port) + " X:";
-  text += view.position != nullptr ? std::to_string(view.position->x()) : "--";
-  text += " Y:";
-  text += view.position != nullptr ? std::to_string(view.position->y()) : "--";
-  if (view.health != nullptr) {
-    text += " HP:" + std::to_string(view.health->value());
+  return std::string(role) + " #" + std::to_string(port)
+      + " objects:" + std::to_string(count);
+}
+
+std::vector<SDL_Point> collectPositions(
+    const std::vector<std::unique_ptr<Replicable>>& objects)
+{
+  std::vector<SDL_Point> points;
+  points.reserve(objects.size());
+  for (const auto& obj : objects) {
+    if (obj->typeID() == TypeID::Position) {
+      points.push_back(pixelCentre(static_cast<const Position&>(*obj)));
+    }
   }
-  return text;
+  return points;
 }
 
 void renderFrame(SDL_Renderer* renderer,
                  int ownPort,
                  int peerPort,
-                 const ObjectView& own,
-                 const ObjectView& mirrored,
-                 const Trail& ownTrail,
-                 const Trail& mirroredTrail)
+                 const std::vector<SDL_Point>& own,
+                 const std::vector<SDL_Point>& mirrored)
 {
   constexpr SDL_Color ownColour {0, 200, 0, 255};
   constexpr SDL_Color mirroredColour {255, 140, 0, 255};
@@ -184,30 +124,19 @@ void renderFrame(SDL_Renderer* renderer,
   SDL_RenderClear(renderer);
 
   drawGrid(renderer);
-  drawTrail(renderer, ownTrail, ownColour);
-  drawTrail(renderer, mirroredTrail, mirroredColour);
+  drawSwarm(renderer, own, ownColour);
+  drawSwarm(renderer, mirrored, mirroredColour);
 
-  if (own.position != nullptr) {
-    const SDL_Point centre = pixelCentre(*own.position);
-    drawSquare(renderer, centre, ownColour);
-    if (own.health != nullptr) {
-      drawHealthBar(renderer, centre, own.health->value(), ownColour);
-    }
-  }
-  if (mirrored.position != nullptr) {
-    const SDL_Point centre = pixelCentre(*mirrored.position);
-    drawSquare(renderer, centre, mirroredColour);
-    if (mirrored.health != nullptr) {
-      drawHealthBar(renderer, centre, mirrored.health->value(), mirroredColour);
-    }
-  }
-
-  drawText(
-      renderer, 10, 10, formatHud("OWN", ownPort, own), hudColour, hudScale);
+  drawText(renderer,
+           10,
+           10,
+           formatHud("OWN", ownPort, own.size()),
+           hudColour,
+           hudScale);
   drawText(renderer,
            10,
            10 + hudLineHeight,
-           formatHud("PEER", peerPort, mirrored),
+           formatHud("PEER", peerPort, mirrored.size()),
            hudColour,
            hudScale);
 
@@ -232,14 +161,21 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
-  auto ownedPosition = std::make_unique<Position>(0, 0);
-  Position* position = ownedPosition.get();
-
   std::vector<std::unique_ptr<Replicable>> objects;
-  objects.push_back(std::move(ownedPosition));
-  objects.push_back(std::make_unique<Health>(100));
-  for (auto& obj : objects) {
-    obj->id = ownPort;  // tag records with their origin
+  objects.reserve(objectCount * 2);
+  std::vector<Position*> positions;
+  positions.reserve(objectCount);
+  for (int i = 0; i < objectCount; ++i) {
+    const int id = ownPort * 10000 + i;  // unique per entity, tagged by origin
+
+    auto position = std::make_unique<Position>();
+    position->id = id;
+    positions.push_back(position.get());
+    objects.push_back(std::move(position));
+
+    auto health = std::make_unique<Health>();
+    health->id = id;
+    objects.push_back(std::move(health));
   }
 
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -269,14 +205,14 @@ int main(int argc, char* argv[])
   }
   SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-  // Distinct radii per port so two peers running in the same process space
-  // trace visibly different orbits rather than overlapping circles.
-  constexpr double angularSpeed = 0.04;
-  const double radius = 80.0 + static_cast<double>(ownPort % 5) * 30.0;
+  // Per-port offsets so two peers running in the same process space produce
+  // visibly distinct swarms instead of identical overlapping ones.
+  constexpr double angularSpeed = 0.02;
+  constexpr double degToRad = 3.14159265358979 / 180.0;
+  const double angleOffset = static_cast<double>(ownPort % 360) * degToRad;
+  const double radiusScale = 6.0 + static_cast<double>(ownPort % 5) * 0.5;
 
   int tick = 0;
-  Trail ownTrail;
-  Trail mirroredTrail;
   auto lastTick = std::chrono::steady_clock::now();
   bool running = true;
   while (running) {
@@ -292,31 +228,25 @@ int main(int argc, char* argv[])
 
     const auto now = std::chrono::steady_clock::now();
     if (now - lastTick >= 100ms) {
-      const double angle = tick * angularSpeed;
-      position->set(static_cast<int>(radius * std::cos(angle)),
-                    static_cast<int>(radius * std::sin(angle)));
+      for (int i = 0; i < objectCount; ++i) {
+        const double radius = radiusScale * std::sqrt(static_cast<double>(i));
+        const double angle =
+            i * goldenAngle + angleOffset + tick * angularSpeed;
+        positions[i]->set(static_cast<int>(radius * std::cos(angle)),
+                          static_cast<int>(radius * std::sin(angle)));
+      }
       ++tick;
 
       espelho.SendObjects(objects);
       espelho.Update();
       lastTick = now;
-
-      ownTrail.push(pixelCentre(*position));
-      const ObjectView mirroredView = findObjectView(espelho.Objects());
-      if (mirroredView.position != nullptr) {
-        mirroredTrail.push(pixelCentre(*mirroredView.position));
-      }
     }
 
-    const ObjectView ownView = findObjectView(objects);
-    const ObjectView mirroredView = findObjectView(espelho.Objects());
     renderFrame(renderer,
                 ownPort,
                 peerPort,
-                ownView,
-                mirroredView,
-                ownTrail,
-                mirroredTrail);
+                collectPositions(objects),
+                collectPositions(espelho.Objects()));
     SDL_Delay(16);  // ~60fps render cadence, independent of the 100ms tick
   }
 

@@ -82,12 +82,33 @@ cmake --build build --parallel
 ./build/espelho 7001 7000    # terminal 2
 ```
 
-Each process owns a world of 1,000 `Position`/`Health` pairs, moves them every tick,
-and prints a count of the mirrored objects it receives from its peer — enough
-objects that a tick's worth of updates no longer fits in one UDP packet, so
-`SendObjects` splits it across several. If you restart one process, restart both —
-a fresh process starts its sequence numbers from zero, so the surviving peer would
-treat its packets as stale.
+Both processes share a world of 1,000 `Position` objects (see
+[Discovery](#discovery-initial)). Each claims the ones near its viewpoint, moves them
+every tick, and prints how many it owns and how many it has mirrored from its peer.
+If you restart one process, restart both — a fresh process starts its sequence
+numbers from zero, so the surviving peer would treat its packets as stale — and delete
+`world.txt` first.
+
+### Discovery (initial)
+
+The demo's world is described by a shared text file, `world.txt`, with one object
+per line (`id x y owner`; owner `0` means free). The first peer to start seeds it
+with a deterministic 40×25 grid of 1,000 objects. Each peer's viewpoint circles the
+world, and under a cross-process lock (`world.txt.lock`, a directory, since creating
+one is atomic) it claims every free object within a fixed radius — first to claim
+keeps it — and replicates only the objects it owns. When an owned object falls out of
+range its position is written back to the file and it is freed. Delete `world.txt`
+between runs: ownership isn't released on exit.
+
+This is deliberately minimal. Known limitations, to be addressed later:
+
+- Mirrored copies are never removed after the owner releases them, and a stale
+  mirror copy stays if a peer later claims an object it previously mirrored.
+- No hysteresis, so objects on the radius boundary can be claimed and released
+  repeatedly.
+- A lock directory left by a crashed process must be removed by hand.
+- No hot joining, and no authority handoff beyond first-claim-wins.
+- The file is read and rewritten in full every tick.
 
 ## Visualiser (optional)
 

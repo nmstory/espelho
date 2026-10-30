@@ -11,6 +11,7 @@ add_executable(espelho_tests
     stream_test.cpp
     replicable_test.cpp
     packet_test.cpp
+    world_file_test.cpp
 )
 
 target_link_libraries(espelho_tests PRIVATE espelho_lib GTest::gtest_main)

@@ -20,6 +20,7 @@ add_library(espelho_lib STATIC
     src/packet_reader.cpp
     src/packet_writer.cpp
     src/type_registry.cpp
+    src/world_file.cpp
 )
 
 target_include_directories(

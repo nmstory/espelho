@@ -10,7 +10,7 @@ Espelho::Espelho(const int& port,
                  std::optional<std::chrono::milliseconds> recvTimeout)
 {
   if (!client.init("127.0.0.1", port, recvTimeout)) {
-    throw std::runtime_error("Espelho: failed to initialize client");
+    throw std::runtime_error("Espelho: failed to initialise client");
   }
 
   RegisterAllTypes();

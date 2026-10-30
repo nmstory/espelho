@@ -34,8 +34,8 @@ void SeedWorld(const std::filesystem::path& path)
   entries.reserve(worldObjectCount);
   for (int row = 0; row < worldRows; ++row) {
     for (int col = 0; col < worldCols; ++col) {
-      entries.push_back(
-          {row * worldCols + col + 1, col * worldSpacing, row * worldSpacing, 0});
+      const int id = row * worldCols + col + 1;
+      entries.push_back({id, col * worldSpacing, row * worldSpacing, 0});
     }
   }
   SaveWorld(path, entries);

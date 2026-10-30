@@ -48,9 +48,9 @@ TEST(WorldFile, SaveLoadRoundtrip)
 TEST(WorldClaim, TakesOnlyFreeEntriesInRadius)
 {
   std::vector<WorldEntry> entries = {
-      {1, 0, 0, 0},      // free, in range
-      {2, 100, 0, 0},    // free, out of range
-      {3, 5, 5, 0},      // free, in range
+      {1, 0, 0, 0},  // free, in range
+      {2, 100, 0, 0},  // free, out of range
+      {3, 5, 5, 0},  // free, in range
   };
   const auto claimed = ClaimNearby(entries, 0, 0, 20, 7000);
 
